@@ -1,6 +1,0 @@
-[browser]
-# Ikke send bruksstatistikk til Streamlit
-gatherUsageStats = false
-
-[client]
-toolbarMode = "minimal"
