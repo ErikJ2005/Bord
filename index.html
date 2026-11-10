@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="no">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Lag bordfordeling for flere uker slik at alle sitter med flest mulig forskjellige personer." />
+    <title>Bordfordeling</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🪑</text></svg>" />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <!--
+      Hele appen kjører i nettleseren. Navnelister som lastes opp sendes aldri
+      til noen server, lagres ikke og logges ikke.
+    -->
+    <main>
+      <header>
+        <h1>Bordfordeling</h1>
+        <p class="personvern">
+          🔒 Navnene du laster opp lagres ikke og sendes ikke noe sted. De brukes bare i
+          nettleseren mens siden er åpen, og forsvinner når du lukker fanen eller trykker
+          «Nullstill».
+        </p>
+      </header>
+
+      <details class="kort" open>
+        <summary>Hvordan skal fila se ut? (se eksempel)</summary>
+        <p>Last opp en Excel-fil (<code>.xlsx</code>) eller CSV med disse overskriftene:</p>
+        <ul>
+          <li><strong>Elever</strong> – ett navn per rad (påkrevd).</li>
+          <li>
+            <strong>Stipp</strong> – valgfri. La cellen stå tom for vanlige elever, skriv
+            <code>stipp</code> for personer som skal spres utover bordene (helst én per bord).
+            Alle i lista får bordplass.
+          </li>
+        </ul>
+        <p>
+          Store og små bokstaver spiller ingen rolle, andre kolonner hoppes over, og navnelista
+          kan ligge i hvilket som helst ark.
+        </p>
+        <div class="eksempel-rad">
+          <div id="eksempel"></div>
+          <div>
+            <p>Slik ser fila ut i Excel. Last ned eksempelet, bytt ut navnene og last det opp igjen.</p>
+            <button type="button" id="last-ned-eksempel" class="sekundær">Last ned eksempelfil</button>
+          </div>
+        </div>
+      </details>
+
+      <form id="skjema" class="kort" onsubmit="return false">
+        <label class="fil-felt">
+          Last opp navneliste
+          <input type="file" id="fil" accept=".xlsx,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv" />
+        </label>
+
+        <div class="kolonner">
+          <fieldset>
+            <legend>Uker og bord</legend>
+            <label>Antall bord <input type="number" id="antall-bord" min="1" max="60" value="10" /></label>
+            <label>Minimum personer per bord <input type="number" id="minimum" min="1" max="8" value="4" /></label>
+            <label>Første uke <input type="number" id="start-uke" min="1" max="52" value="1" /></label>
+            <label>Siste uke <input type="number" id="slutt-uke" min="1" max="52" value="1" /></label>
+          </fieldset>
+
+          <fieldset>
+            <legend>Plasser</legend>
+            <label class="avkrysning">
+              <input type="checkbox" id="like-store" checked /> Alle bord har like mange plasser
+            </label>
+            <label id="felles-plasser">Plasser per bord <input type="number" id="plasser" min="1" max="40" value="7" /></label>
+            <div id="per-bord" class="per-bord" hidden></div>
+          </fieldset>
+        </div>
+
+        <div class="knapper">
+          <button type="button" id="generer">Generer bordfordeling</button>
+          <button type="button" id="nullstill" class="sekundær">Nullstill</button>
+        </div>
+
+        <div id="framdrift-boks" hidden>
+          <progress id="framdrift" value="0" max="1"></progress>
+          <span id="framdrift-tekst" aria-live="polite"></span>
+        </div>
+      </form>
+
+      <div id="meldinger"></div>
+
+      <section id="resultat" hidden>
+        <div class="tall">
+          <div class="kort"><span>Snitt ulike bordkamerater</span><strong id="snitt"></strong></div>
+          <div class="kort"><span>Færrest ulike bordkamerater</span><strong id="faerrest"></strong></div>
+          <div class="kort"><span>Par som har sittet sammen mer enn én gang</span><strong id="gjentatte"></strong></div>
+        </div>
+        <div class="knapper">
+          <button type="button" id="last-ned-excel">Last ned Excel (alle uker)</button>
+          <button type="button" id="last-ned-zip" class="sekundær">Last ned alle ukene som ZIP (CSV)</button>
+        </div>
+        <div id="faner" role="tablist" aria-label="Uker"></div>
+        <div id="fane-innhold"></div>
+      </section>
+    </main>
+
+    <!-- SheetJS leser og skriver Excel-filer lokalt i nettleseren -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+    <script src="fordeling.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>
