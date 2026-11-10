@@ -318,6 +318,42 @@
     return lag("div", { class: "tabell-boks" }, tabell);
   }
 
+  /** Ett kort per bord, med stipper merket. */
+  function visBordkort(bordliste, stipper) {
+    return lag(
+      "div",
+      { class: "bord-rutenett" },
+      ...bordliste.map((b) =>
+        lag(
+          "article",
+          { class: "bord" },
+          lag(
+            "header",
+            {},
+            lag("h4", {}, `Bord ${b.nr}`),
+            lag("span", { class: "antall" }, `${b.navn.length} ${b.navn.length === 1 ? "person" : "personer"}`)
+          ),
+          lag(
+            "ol",
+            {},
+            ...b.navn.map((n) =>
+              lag("li", {}, lag("span", {}, n), stipper.has(n) ? lag("span", { class: "merke" }, "Stipp") : "")
+            )
+          )
+        )
+      )
+    );
+  }
+
+  function visFilnavn() {
+    const fil = $("fil").files[0];
+    $("slipp").classList.toggle("har-fil", Boolean(fil));
+    $("slipp-tittel").textContent = fil ? fil.name : "Dra navnelista hit, eller klikk for å velge";
+    $("slipp-hint").textContent = fil
+      ? `${(fil.size / 1024).toFixed(1).replace(".", ",")} kB · klikk for å bytte fil`
+      : "Excel (.xlsx) eller CSV";
+  }
+
   function visMelding(tekst, type = "feil") {
     const boks = $("meldinger");
     boks.append(lag("div", { class: `melding ${type}`, role: type === "feil" ? "alert" : "status" }, tekst));
@@ -343,8 +379,8 @@
       ...Array.from({ length: antall }, (_, i) =>
         lag(
           "label",
-          {},
-          `Plasser ved bord ${i + 1}`,
+          { class: "felt" },
+          lag("span", {}, `Plasser ved bord ${i + 1}`),
           lag("input", { type: "number", min: "1", max: "40", value: gamle[i] || $("plasser").value || "7" })
         )
       )
@@ -450,7 +486,7 @@
         }
       );
       const tabeller = uker.map((b, i) => [`Uke ${innst.startUke + i}`, somTabell(b)]);
-      resultat = { tabeller, stat, advarsler };
+      resultat = { tabeller, uker, stat, advarsler, stipper: new Set(stipper), startUke: innst.startUke };
       visResultat();
     } catch (e) {
       visMelding(
@@ -465,8 +501,12 @@
   }
 
   function visResultat() {
-    const { tabeller, stat, advarsler } = resultat;
-    visMelding("Bordfordeling generert!", "suksess");
+    const { tabeller, uker, stat, advarsler, stipper } = resultat;
+    const personer = stat.perPerson.length;
+    visMelding(
+      `Bordfordeling generert for ${personer} personer over ${uker.length} ${uker.length === 1 ? "uke" : "uker"}.`,
+      "suksess"
+    );
     for (const a of advarsler) visMelding(a, "advarsel");
 
     const ulike = stat.perPerson.map(([, u]) => u);
@@ -476,9 +516,14 @@
 
     const faner = $("faner");
     const innhold = $("fane-innhold");
-    tabeller.forEach(([navn, rader], i) => {
+    tabeller.forEach(([navn], i) => {
       const fane = lag("button", { type: "button", role: "tab", id: `fane-${i}`, "aria-controls": `panel-${i}` }, navn);
-      const panel = lag("div", { role: "tabpanel", id: `panel-${i}`, "aria-labelledby": `fane-${i}` }, visTabell(rader));
+      const panel = lag(
+        "div",
+        { role: "tabpanel", id: `panel-${i}`, "aria-labelledby": `fane-${i}` },
+        lag("h3", { class: "utskrift-tittel" }, `Bordfordeling – ${navn}`),
+        visBordkort(uker[i], stipper)
+      );
       fane.addEventListener("click", () => velgFane(i));
       faner.append(fane);
       innhold.append(panel);
@@ -511,8 +556,27 @@
     tomResultat();
     $("skjema").reset();
     oppdaterBordfelter();
+    visFilnavn();
   });
-  $("fil").addEventListener("change", tomResultat);
+  $("fil").addEventListener("change", () => {
+    tomResultat();
+    visFilnavn();
+  });
+  const slipp = $("slipp");
+  ["dragenter", "dragover"].forEach((t) =>
+    slipp.addEventListener(t, (e) => {
+      e.preventDefault();
+      slipp.classList.add("over");
+    })
+  );
+  ["dragleave", "drop"].forEach((t) => slipp.addEventListener(t, () => slipp.classList.remove("over")));
+  slipp.addEventListener("drop", (e) => {
+    e.preventDefault();
+    if (!e.dataTransfer.files.length) return;
+    $("fil").files = e.dataTransfer.files;
+    $("fil").dispatchEvent(new Event("change"));
+  });
+  $("skriv-ut").addEventListener("click", () => window.print());
   $("faner").addEventListener("keydown", (e) => {
     const faner = [...$("faner").querySelectorAll("[role=tab]")];
     const i = faner.indexOf(document.activeElement);
